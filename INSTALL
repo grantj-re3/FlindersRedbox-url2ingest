@@ -1,0 +1,141 @@
+1. APPLICATION ENVIRONMENT
+
+This script has been tested in the following environment:
+- GNU bash, version 4.1.2(1)-release (x86_64-redhat-linux-gnu)
+- Red Hat Enterprise Linux Server release 6.3 (Santiago)
+- 2.6.32-279.11.1.el6.x86_64 #1 SMP Sat Sep 22 07:10:26 EDT 2012 x86_64 x86_64 x86_64 GNU/Linux
+- https://github.com/redbox-mint/redbox-build-dev-handle/tree/redbox-handle-curation-demo-1.5.1
+- https://github.com/redbox-mint/mint-build-dev-handle/tree/mint-handle-curation-demo-1.5.1
+
+It is expected that the script will also operate with little or no modification under other versions of bash, sh and ksh.
+
+
+2. INSTALLATION
+
+
+2.1 ASSUMPTIONS
+
+- That you have a basic understanding of Linux/Unix and bash, sh or ksh shell scripts.
+- That you are using a Linux, Unix or Unix-like environment similar to that described under APPLICATION ENVIRONMENT.
+- That you are running the script as an unprivileged user (ie. not root).
+- That the user who runs the script has permission to ingest (or harvest or load) Mint person and/or project files using the Mint server/tf_harvest.sh script.
+- That person and/or project files to be ingested into Mint are CSV files compatible with the corresponding json file in the Mint home/harvest directory.
+
+For loading party-person metadata, the script assumes there is a symlink
+pointing from Mint home/data/Parties_People.csv to $TARGET_SOURCE_PATH.
+This is important because Mint assumes the same ID field (ie. key)
+in a different filename is a different record. Hence the symlink
+allows us to potentially vary $TARGET_SOURCE_PATH filename while
+still retaining the same "fileLocation" in home/harvest/Parties_People.json.
+For loading activity-project metadata, the same principle applies to CSV
+and JSON files.
+
+
+2.2 INSTRUCTIONS
+
+- Download from github.
+
+- Checkout the desired version/tag if applicable.
+
+- Update the config for your site
+  * Update all variables which are commented with "## CUSTOMISE" in the first section of the url2ingest.sh with values suitable for your environment
+  * For people or for projects, add a symlink from the appropriate CSV file to $PERSON_TARGET_SOURCE_PATH or $PROJECT_TARGET_SOURCE_PATH respectively.
+
+- The first time you run this script for people or for projects, you must not use the --incremental-load option as there will be no reference CSV file from which to determine which records are new/updated.
+
+- Subsequent runs can use either --full-load (default) or --incremental-load methods. Incremental loading is a little more risky because if the load fails for some reason, you may miss loading any new/updated records - even later on once the cause of the failure is resolved. However non-incremental (ie. full) loading is more likely to load those records later on once the cause of the failure has been resolved.
+  * Run for persons & projects from a single cron job
+
+See the EXAMPLE INSTALLATION SCENARIO below.
+
+
+3. EXAMPLES
+
+
+3.1 EXAMPLE INVOCATIONS
+
+Command line invocation to ingest all person records within a CSV file.
+All the invocations below perform the same operation.
+  ./url2ingest.sh --persons
+  ./url2ingest.sh --persons --full-load
+  ./url2ingest.sh -e
+  ./url2ingest.sh -e -f
+
+After priming with a full load, subsequent ingests can be incremental.
+  ./url2ingest.sh --persons --incremental-load
+  ./url2ingest.sh -e -i
+
+Command line invocation to ingest all project records within a CSV file:
+  ./url2ingest.sh --projects
+  ./url2ingest.sh --projects --full-load
+  ./url2ingest.sh -r
+  ./url2ingest.sh -r -f
+
+After priming with a full load, subsequent ingests can be incremental.
+  ./url2ingest.sh --projects --incremental-load
+  ./url2ingest.sh -r -i
+
+
+Cron job to ingest all person records within a CSV file.
+  15 20 * * * $HOME/url2ingest/bin/url2ingest.sh --persons  >> $HOME/url2ingest/log/url2ingest.log 2>&1
+
+Cron job to ingest all project records within a CSV file.
+  15 20 * * * $HOME/url2ingest/bin/url2ingest.sh --projects >> $HOME/url2ingest/log/url2ingest.log 2>&1
+
+Cron job to ingest all person records within a CSV file then
+all project records within a CSV file.
+  15 20 * * * (app=$HOME/url2ingest/bin/url2ingest.sh; $app --persons; $app --projects) >> $HOME/url2ingest/log/url2ingest.log 2>&1
+
+
+3.2 EXAMPLE INSTALLATION SCENARIO
+
+Scenario:
+
+ - This application to be installed in $HOME/url2ingest of an unprivileged user.
+ - Configure the ingest of person records from http://my_host.my_uni.edu.au/my_source_of_truth_csv_dir/people.csv
+ - Mint base is at /opt/ands/mint-builds/current.
+ - /opt/ands/mint-builds/current/home/harvest/Parties_People.json contains the line:
+     "fileLocation": "${fascinator.home}/data/Parties_People.csv",
+
+	 
+Instructions:
+
+git clone https://github.com/grantj-re3/FlindersRedbox-url2ingest.git ~/url2ingest
+cd ~/url2ingest
+
+# If you want a particular release:
+git tag			# List tagged releases
+git checkout ...	# Checkout the desired release
+
+# Read files INSTALL LICENSE README*
+
+# Edit config section of bin/url2ingest.sh; update any variable with the comment "## CUSTOMISE" to suit your site. Eg.
+  MINT_BASE=/opt/ands/mint-builds/current
+  PARENT_DIR=$HOME/url2ingest
+  PARENT_IN_URL_CSV=http://my_host.my_uni.edu.au/my_source_of_truth_csv_dir
+  PERSON_MINT_DATA_SOURCE=Parties_People
+  PERSON_SOURCE_FNAME=people.csv
+  PERSON_IN_URL_CSV=$PARENT_IN_URL_CSV/$PERSON_SOURCE_FNAME
+
+# Add symlink from CSV file location (associated with Mint Parties_People.json) to $PERSON_TARGET_SOURCE_PATH.
+# Note that $PERSON_TARGET_SOURCE_PATH only exists while the script is running (and will itself be a symlink
+# pointing to either the file downloaded from the specified URL or an incremental version of it).
+ln -s ~/url2ingest/download/target_people.csv /opt/ands/mint-builds/current/home/data/Parties_People.csv
+
+# See if it runs ok
+bin/url2ingest.sh --persons
+
+# Check that records were ingested from the CSV file at the specified URL into the Mint Parties_People data source.
+# Check log files: log/harvest_out_accum.log & log/url2ingest.log
+
+# After successfully running the script your filesystem layout should look like that below.
+$HOME/url2ingest			# Parent directory.
+$HOME/url2ingest/bin			# Directory containing the script(s).
+$HOME/url2ingest/download		# Download directory (generally contains no files unless script is running).
+$HOME/url2ingest/download/history	# Download history directory. Contains (full) files downloaded from URL(s) & incremental file versions if applicable. The most recent timestamped full-file is used to determine next incremental version.
+$HOME/url2ingest/log			# Log directory.
+$HOME/url2ingest/working		# Working/temporary directory (generally contains no files unless script is running).
+
+# Add a line to your crontab similar to that below & confirm that it runs ok.
+15 20 * * * $HOME/url2ingest/bin/url2ingest.sh --persons  >> $HOME/url2ingest/log/url2ingest.log 2>&1
+
