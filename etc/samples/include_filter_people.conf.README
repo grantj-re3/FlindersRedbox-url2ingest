@@ -1,0 +1,54 @@
+The configuration file:
+  etc/include_filter.conf
+
+shall contain a list of regular expressions on each line which, when
+logically ORed will define the records to be included in the ingest.
+
+IMPORTANT POINTS
+
+ - The whole file is passed through this filter, so you must ensure
+   that you include the header line with something like:
+     ^ID,
+   or:
+     ^"ID",
+   for an unquoted or quoted header ID field respectively (in addition
+   to the records which you want included in the ingest).
+
+ - The syntax of etc/include_filter.conf shall conform to that for
+   the pattern-file required for the command:
+     egrep -f etc/include_filter.conf ...
+   Note that an empty file matches nothing.
+
+ - It is expected that the file will contain a list of CSV file keys,
+   with one key per line (but there are many other regular expressions
+   which may better suit your needs).
+
+ - You could also use the file to perform sanity checking/filtering of
+   your records. Eg. If IDs can only have 1 of 3 valid prefices followed
+   by digits 0-9, you could choose to filter out all records which do
+   not match those prefices with something like:
+     ^"ID",
+     ^"PREFIXA[0-9]+",
+     ^"PREFIXB[0-9]+",
+     ^"PREFIXC[0-9]+",
+
+
+Example 1: Include the header and all other records:
+     .*
+
+Example 2: Include the header line plus the 5 keys listed (for quoted ID column):
+     ^"ID",
+     ^"mykey0025",
+     ^"mykey0026",
+     ^"mykey0027",
+     ^"mykey0333",
+     ^"mykey0334",
+
+Example 3: Include the header line plus the 5 keys listed (for unquoted ID column):
+     ^ID,
+     ^mykey0025,
+     ^mykey0026,
+     ^mykey0027,
+     ^mykey0333,
+     ^mykey0334,
+
