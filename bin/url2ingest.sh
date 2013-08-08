@@ -1,10 +1,5 @@
 #!/bin/sh
-# Usage:  url2ingest.sh --persons|--projects [ --full-load|--incremental-load ]
-#   or use short options:
-#     -e = --person
-#     -r = --projects
-#     -f = --full-load
-#     -i = --incremental-load
+# Usage:  See usage_exit() below.
 #
 # Copyright (c) 2013, Flinders University, South Australia. All rights reserved.
 # Contributors: eResearch@Flinders, Library, Information Services, Flinders University.
@@ -13,13 +8,15 @@
 ##############################################################################
 # Purpose:
 # - To retrieve the specified file from a URL
+# - To allow records to be filtered (included) via regular expressions
+#   in a configuration file
 # - To ingest/harvest/load the file into the appropriate Mint data source
 #
 # Important points:
 #
 # 1) For loading party-person metadata, the script assumes there is a symlink
 # pointing from Mint home/data/Parties_People.csv (or whatever is defined
-# under harvester>csv>fileLocation in Mint home/harvest/Parties_People.json)
+# under harvester > csv > fileLocation in Mint home/harvest/Parties_People.json)
 # to $PERSON_FILTERED_FPATH. You must create this symlink manually before
 # running this script.
 #
@@ -34,15 +31,23 @@
 #   PERSON_MINT_DATA_SOURCE=Parties_People
 # and you should create the symlink:
 #   ln -s $PERSON_FILTERED_FPATH $MINT_BASE/home/data/Parties_People.csv
-# where MINT_BASE & PERSON_FILTERED_FPATH are assigned below (and
-# ${fascinator.home} is assigned within the Mint environment).
+# where MINT_BASE & PERSON_FILTERED_FPATH are assigned below and
+# ${fascinator.home} is assigned within the Mint environment.
 #
 # 2) For loading activity-project metadata, the same symlink requirement
 # applies to the CSV file (assuming you have configured a local data source
 # for loading projects at your institution as documented at URL
 # http://www.redboxresearchdata.com.au/documentation/system-administration/administering-mint/loading-data/loading-activity-data).
 #
-# 3) This script can be run from a Unix/Linux cron job.
+# 3) It is expected that you only need to customise the variables marked
+#    with "CUSTOMISE" below.
+#
+# 4) If you wish to include all records from the CSV file downloaded
+#    from the specified URL, you can leave the configuration files
+#    (in the 'etc' directory) with their default regular expressions
+#    of:  .*
+#
+# 5) This script can be run from a Unix/Linux cron job.
 # Eg.
 #   15 20 * * * (app=$HOME/opt/url2ingest/bin/url2ingest.sh; $app --persons; $app --projects) >> $HOME/opt/url2ingest/log/url2ingest.log 2>&1
 #
@@ -116,6 +121,9 @@ echo_timestamp() {
   echo "`date +%F\ %T` -- $1"
 }
 
+##############################################################################
+# dump_exit() -- Display 'interesting' variables to assist with configuration
+#   of this script.
 ##############################################################################
 dump_exit() {
   echo
