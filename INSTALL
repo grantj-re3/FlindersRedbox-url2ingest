@@ -16,19 +16,25 @@ operating system, but it may be feasible under Cygwin (see http://www.cygwin.com
 
 2. INSTALLATION
 
+2.1 WARNINGS
 
-2.1 WARNING
+2.1.1 This script contains a cleanup() function which deletes a list of files
+defined in shell variables. Hence you should use care when assigning/changing
+shell variables.
 
-This script contains a cleanup() function which deletes a list of files defined
-in shell variables. Hence you should use care when assigning/changing shell
-variables. In addition you should consider the following to minimise the risk
-of issues.
+2.1.2 Consider the following suggestions to minimise the risk of problems.
 - Read all the documentation.
 - Limit your changes to variables marked with the word 'CUSTOMISE' unless
   you know what you are doing.
 - After configuration, run the application with the --dump option to show
   the configuration is as you expected.
 - Consider running with the DRY_RUN variable set initially.
+
+2.1.3 The etc/include_filter_*.conf files are used as a pattern-file in
+an 'egrep -f ...' command. It appears that the GNU egrep command treats
+blank lines in a pattern-file as a match-everything regular expression!
+Hence you should NOT USE BLANK LINES anywhere within
+etc/include_filter_*.conf files.
 
 
 2.2 ASSUMPTIONS
@@ -178,7 +184,7 @@ git checkout v1.1	# Checkout the desired release
 # $PERSON_FILTERED_FPATH only exists while the script is running.
 
 bin/url2ingest.sh --dump	# Show the value of $PERSON_FILTERED_FPATH
-ln -s ~/opt/url2ingest/working/filtered_projects.csv /opt/ands/mint-builds/current/home/data/Parties_People.csv
+ln -s ~/opt/url2ingest/working/filtered_people.csv /opt/ands/mint-builds/current/home/data/Parties_People.csv
 
 # Consider if you want to apply more restrictive filtering to
 # etc/include_filter_people.conf. The default regular expression (of .*)

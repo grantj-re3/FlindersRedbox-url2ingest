@@ -5,6 +5,16 @@ The configuration files:
 shall contain a list of regular expressions on each line which, when
 logically ORed, will define the records to be included in the ingest.
 
+
+WARNING
+
+The etc/include_filter_*.conf files are used as a pattern-file in
+an 'egrep -f ...' command. It appears that the GNU egrep command treats
+blank lines in a pattern-file as a match-everything regular expression!
+Hence you should NOT USE BLANK LINES anywhere within
+etc/include_filter_*.conf files.
+
+
 IMPORTANT POINTS
 
 - The whole file is passed through this filter, so you must ensure

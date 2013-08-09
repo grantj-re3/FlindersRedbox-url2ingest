@@ -268,6 +268,16 @@ setup() {
 }
 
 ##############################################################################
+# verify_filter_config() -- Refuse to use a poor filter config file
+##############################################################################
+verify_filter_config() {
+  if egrep -q "^[	 ]*$" $FILTER_CONFIG_FPATH; then
+    echo_timestamp "QUITTING: The config file '$FILTER_CONFIG_FPATH' contains one or more blank lines (which match everything)!"
+    exit 5
+  fi
+}
+
+##############################################################################
 # verify_mint_is_running() -- Verify that Mint is running. If not,
 #   display a message then exit. If this function returns to the caller
 #   then Mint appears to be running.
@@ -410,6 +420,8 @@ get_data_source_vars "$copt_data_source"
 
 setup
 verify_mint_is_running	# Cannot ingest metadata unless Mint is running. If Mint not running, incremental metadata may be missed forever!
+verify_filter_config	# Refuse to use a poor filter config file
+
 is_load_csv_done=0
 is_load_csv_successful=0
 timestamp=`date +%y%m%d-%H%M%S`
