@@ -52,11 +52,19 @@ etc/include_filter_*.conf files.
   directory.
 
 For loading party-person metadata, the script assumes there is a symlink
-pointing from Mint home/data/Parties_People.csv to $TARGET_SOURCE_PATH.
+pointing from Mint home/data/Parties_People.csv to $FINAL_FPATH.
 This is important because Mint assumes the same ID field (ie. key)
 in a different filename is a different record. Hence the symlink
-allows us to potentially vary $TARGET_SOURCE_PATH filename while
+allows us to potentially vary $FINAL_FPATH filename while
 still retaining the same "fileLocation" in home/harvest/Parties_People.json.
+
+For loading activity-project metadata, the same principle applies to CSV
+and JSON files.
+
+After applying your customisations, you can find the value of $FINAL_FPATH
+(and other interesting variables) for both persons and projects by running:
+  url2ingest.sh --dump
+
 For loading activity-project metadata, the same principle applies to CSV
 and JSON files.
 
@@ -70,10 +78,9 @@ and JSON files.
 - Update the config for your site
   * Update all variables which are commented with "CUSTOMISE" in the first
     section of the url2ingest.sh with values suitable for your environment.
-  * For people and projects, add a symlink from the appropriate CSV file to
-    $PERSON_FILTERED_FPATH or $PROJECT_FILTERED_FPATH respectively.
-    Running the application with --dump option will show you the value of
-    these shell variables.
+  * Add a symlink from the appropriate CSV file to the appropriate
+    $FINAL_FPATH (for persons or projects).  Running the application with
+    the --dump option will show you the value of these shell variables.
   * For people and projects, if you want to apply a (regular expression)
     filter which is more restrictive than the default (which lets all records
     through) then update files etc/include_filter_people.conf and
@@ -92,7 +99,10 @@ and JSON files.
   fails for some reason, you may miss loading any new/updated records - even
   later on once the cause of the failure is resolved. However non-incremental
   (ie. full) loading is more likely to load those records later once the
-  cause of the failure has been resolved.
+  cause of the failure has been resolved. However a full load for thousands
+  of records is likely to cause a high processing load for Mint during the
+  CSV file ingest and the NLA OAI-PMH incremental harvester (because all
+  datestamps will be updated).
 
 - After running from the command line for testing and evaluation, you can
   configure the script to run for persons and/or projects from a single cron job.
@@ -167,9 +177,9 @@ cd ~/opt/url2ingest
 
 # If you want a particular release:
 git tag			# List tagged releases
-git checkout v1.1	# Checkout the desired release
+git checkout v1.2	# Checkout the desired release
 
-# Read files INSTALL LICENSE README* etc/samples/*
+# Read files INSTALL, LICENSE, README*, RELEASE_NOTES, etc/samples/*
 
 # Edit config section of bin/url2ingest.sh; update any variable with the
 # comment "## CUSTOMISE" to suit your site. Eg.
@@ -180,11 +190,11 @@ git checkout v1.1	# Checkout the desired release
   PERSON_MINT_DATA_SOURCE=Parties_People
 
 # Add a symlink from CSV file location (associated with Mint
-# Parties_People.json) to $PERSON_FILTERED_FPATH. Note that
-# $PERSON_FILTERED_FPATH only exists while the script is running.
+# Parties_People.json) to the person $FINAL_FPATH. Note that
+# $FINAL_FPATH only exists while the script is running.
 
-bin/url2ingest.sh --dump	# Show the value of $PERSON_FILTERED_FPATH
-ln -s ~/opt/url2ingest/working/filtered_people.csv /opt/ands/mint-builds/current/home/data/Parties_People.csv
+bin/url2ingest.sh --dump	# Show the value of $FINAL_FPATH
+ln -s ~/opt/url2ingest/working/final_people.csv /opt/ands/mint-builds/current/home/data/Parties_People.csv
 
 # Consider if you want to apply more restrictive filtering to
 # etc/include_filter_people.conf. The default regular expression (of .*)
@@ -204,9 +214,9 @@ bin/url2ingest.sh --persons
 $HOME/opt/url2ingest			# Parent directory.
 $HOME/opt/url2ingest/bin		# Directory containing the script(s).
 $HOME/opt/url2ingest/download		# Download directory (generally contains no files unless script is running).
-$HOME/opt/url2ingest/download/history	# Download history directory. Contains (full) files downloaded from URL(s)
-					#   and incremental file versions if applicable. The most recent timestamped
-					#   full-file is used to determine next incremental version.
+$HOME/opt/url2ingest/download/history	# History directory. Contains CSV files in various stages of processing.
+					#   The most recent timestamped filtered-file is used to determine next
+					#   incremental CSV to be loaded (if applicable).
 $HOME/opt/url2ingest/etc		# Contains configuration files.
 $HOME/opt/url2ingest/log		# Log directory.
 $HOME/opt/url2ingest/working		# Working/temporary directory (generally contains no files unless script is running).

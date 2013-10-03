@@ -39,7 +39,7 @@ Features
 
 Todo
 ----
-* Consider not performing a full-load unless CSV file has changed.
+NA
 
 Acknowledgement
 ---------------

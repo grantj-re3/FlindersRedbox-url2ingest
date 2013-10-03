@@ -1,0 +1,33 @@
+
+FlindersRedbox-url2ingest
+=========================
+
+v1.0
+----
+Initial version. Is able to load full CSV file or incremental changes since
+the last load into the specified Mint data source.
+
+v1.1
+----
+A regular expression filter is now always applied via configuration files:
+- etc/include_filter_people.conf
+- etc/include_filter_project.conf
+
+v1.2
+----
+Rewritten so that incremental loads do not only notice changes in the CSV
+file, but they also notice changes resulting from alteration of the
+etc/include_filter_*.conf files.
+
+High level algorithm:
+- Download CSV file
+- Apply filter to downloaded-CSV file
+- If full-load:
+  * ingest downloaded-CSV file into Mint
+- If incremental-load:
+  * compare filtered-CSV with previous successfully loaded
+    filtered-CSV to determine new or updated (incremental) records.
+  * ingest incremental-CSV file into Mint
+- Save downloaded-CSV to history directory in case the next
+  load is an incremental one. Save other CSV files if required.
+
