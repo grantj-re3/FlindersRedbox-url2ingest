@@ -65,7 +65,19 @@ PS_OPTS="-afe"			# ps args: PID in 2nd field & full command (including args)
 
 MINT_BASE=/opt/ands/mint-builds/current		## CUSTOMISE: Set to Mint base dir
 TF_HARVEST_LOG=$MINT_BASE/home/logs/harvest.out
+
+# Before attempting to detect errors in $TF_HARVEST_LOG, we might wish to
+# exclude certain records first with "egrep -v" (eg. for DEBUG logging,
+# $TF_HARVEST_LOG includes all title, description & other CSV fields which
+# may include words or substrings such as "error" or "fail" or "exception").
+# Hence $TF_HARVEST_LOG_EXCLUDE_REGEX allows us to exclude certain
+# lines *before* searching for error phrases given by the regex
+# $TF_HARVEST_LOG_ERROR_REGEX. If you do not want to exclude any lines,
+# assign a regex to $TF_HARVEST_LOG_EXCLUDE_REGEX which cannot match
+# anything (eg. "a^").
+TF_HARVEST_LOG_EXCLUDE_REGEX="DEBUG *CSVHarvester *{\"ID\":.*}\$"	# Exclude CSV lines from $TF_HARVEST_LOG
 TF_HARVEST_LOG_ERROR_REGEX="error|fail|exception"	# Regex to detect errors in $TF_HARVEST_LOG
+
 TF_SERVER_DIR=$MINT_BASE/server
 TF_HARVEST_BIN=tf_harvest.sh
 MINT_PID_FPATH=$TF_SERVER_DIR/tf.pid
@@ -338,8 +350,10 @@ load_csv() {
     do_command "$cmd" $VERBOSE "Load metadata file into Mint. Data source: $MINT_DATA_SOURCE"
     is_load_csv_done=1
 
-    if egrep -i "$TF_HARVEST_LOG_ERROR_REGEX" $TF_HARVEST_LOG >/dev/null; then
-      echo_timestamp "Mint harvest ERROR detected by regex /$TF_HARVEST_LOG_ERROR_REGEX/ in file $TF_HARVEST_LOG"
+    # Before searching for errors, first exclude unwanted lines (eg. CSV
+    # records containing data fields such as titles and descriptions)
+    if egrep -v "$TF_HARVEST_LOG_EXCLUDE_REGEX" $TF_HARVEST_LOG |egrep -i "$TF_HARVEST_LOG_ERROR_REGEX" >/dev/null; then
+      echo_timestamp "Mint harvest ERROR detected by regex /$TF_HARVEST_LOG_ERROR_REGEX/ in file $TF_HARVEST_LOG (after excluding lines matching /$TF_HARVEST_LOG_EXCLUDE_REGEX/)"
     else
       is_load_csv_successful=1
     fi
@@ -466,6 +480,8 @@ if [ "$is_load_csv_successful" = 1 ]; then
   dest_final=$FINAL_HISTORY_FPATH.$timestamp
   cmd="mv -f $FINAL_FPATH $dest_final"
   [ $WILL_BACKUP_FINAL_FILE = 1 -a ! "$copt_full_incr" = --full-load ] && do_command "$cmd" $VERBOSE "Backup the final metadata file to $dest_final"
+else
+  echo_timestamp "No CSV backups will be performed."
 fi
 
 # The Mint rewrites $TF_HARVEST_LOG (ie. does not append) for each run.
@@ -473,5 +489,7 @@ fi
 if [ "$is_load_csv_done" = 1 ]; then
   cmd="(echo; echo_timestamp \"[$APP $copt_data_source $copt_full_incr] Appending Mint harvest log...\"; cat $TF_HARVEST_LOG) >> $HARVEST_LOG_ACCUM"
   do_command "$cmd" $VERBOSE "Append Mint harvest log to $HARVEST_LOG_ACCUM"
+else
+  echo_timestamp "No backup of the Mint harvest log will be performed."
 fi
 
