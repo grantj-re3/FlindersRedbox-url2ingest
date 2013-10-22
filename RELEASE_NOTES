@@ -23,13 +23,14 @@ High level algorithm:
 - Download CSV file
 - Apply filter to downloaded-CSV file
 - If full-load:
-  * ingest downloaded-CSV file into Mint
+  * ingest filtered-CSV file into Mint
 - If incremental-load:
   * compare filtered-CSV with previous successfully loaded
     filtered-CSV to determine new or updated (incremental) records.
   * ingest incremental-CSV file into Mint
-- Save downloaded-CSV to history directory in case the next
-  load is an incremental one. Save other CSV files if required.
+- If loading of CSV into Mint was successful, save filtered-CSV to
+  history directory in case the next load is an incremental one. Save
+  other CSV files if required.
 
 v1.3
 ----
