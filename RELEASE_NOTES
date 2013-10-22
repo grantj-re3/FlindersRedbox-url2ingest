@@ -31,3 +31,16 @@ High level algorithm:
 - Save downloaded-CSV to history directory in case the next
   load is an incremental one. Save other CSV files if required.
 
+v1.3
+----
+The Mint CSV-load script tf_harvest.sh does not return an error status so
+this script attempts to guess the error status by looking inside the
+$TF_HARVEST_LOG.  However for DEBUG logging, $TF_HARVEST_LOG includes title,
+description & other CSV fields which may include words or substrings such as
+"error" or "fail" or "exception" which we may use to guess the error status.
+Hence $TF_HARVEST_LOG_EXCLUDE_REGEX (new in v1.3) allows us to exclude certain
+lines from $TF_HARVEST_LOG *before* searching for error phrases.
+
+The error status is particularly important for incremental loading in order to
+implement the algorithm "load new/updated records since last successful load".
+
