@@ -1,0 +1,2 @@
+ID,Given_Name,Other_Names,Family_Name,Pref_Name,Honorific,Email,Job_Title,ANZSRC_FOR_1,ANZSRC_FOR_2,ANZSRC_FOR_3,NLA_Party_Identifier,ResearcherID,openID,Staff_Profile_Homepage,Description
+1234,Albert,Watson,Zweinstein,Albert,Prof,albert.zweinstein@example.edu.au,Dean,0101,0102,010501,http://nla.gov.au/nla.party-100001,http://www.researcherid.com/rid/F-1234-5678,,http://staff.example.edu.au/Albert.Zweinstein,Prof Albert Zweinstein is a Dean at the University of Examples
