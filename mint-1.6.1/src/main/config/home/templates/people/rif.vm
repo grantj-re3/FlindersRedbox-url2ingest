@@ -65,16 +65,20 @@
 #end
 ##### END Identifier resolution
 
-<registryObjects xmlns="http://ands.org.au/standards/rif-cs/registryObjects" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ands.org.au/standards/rif-cs/registryObjects http://services.ands.org.au/documentation/rifcs/1.3/schema/registryObjects.xsd">
+<registryObjects xmlns="http://ands.org.au/standards/rif-cs/registryObjects" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ands.org.au/standards/rif-cs/registryObjects http://services.ands.org.au/documentation/rifcs/1.6/schema/registryObjects.xsd">
     <registryObject group="$util.encodeXml($group)">
         <key>$util.encodeXml($pid)</key>
         <originatingSource>$urlBase</originatingSource>
         <party type="person">
             <identifier type="uri">$util.encodeXml($pid)</identifier>
 
-			#set ($nla_id = $util.getMetadata($object, "nlaPid"))
+            #set ($nla_id = $util.getMetadata($object, "nlaPid"))
             #if ("$!nla_id" != "") 
-            	<identifier type="AU-ANL:PEAU">$util.encodeXml($nla_id)</identifier> 
+            <identifier type="AU-ANL:PEAU">$util.encodeXml($nla_id)</identifier> 
+            #end
+            #set ($orcidId = $util.get($item, "data", "Orcid_ID"))
+            #if ("$!orcidId" != "")
+            <identifier type="orcid">$util.encodeXml($orcidId)</identifier> 
             #end
             
             

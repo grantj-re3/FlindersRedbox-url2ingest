@@ -92,6 +92,20 @@
                 <agent>Mint Name Authority - $util.encodeXml($group)</agent>
             </maintenanceEvent>
         </maintenanceHistory>
+
+        #set ($orcidId = $util.get($item, "data", "Orcid_ID"))
+        #if ("$!orcidId" != "")
+        <sources>
+            <source>
+                <objectXMLWrap>
+                    <dc>
+                        <publisher>AU-YORCID</publisher>
+                        <identifier>$util.encodeXml($orcidId)</identifier>
+                    </dc>
+                </objectXMLWrap>
+            </source>
+        </sources>
+        #end
     </control>
 
     <cpfDescription>

@@ -108,7 +108,7 @@ class IndexData:
             self.utils.add(self.index, key, data.get(key))
 
         # Known IDs
-        idFields = ["ID", "URI", "NLA_Party_Identifier", "ResearcherID", "openID", "Personal_URI"]
+        idFields = ["ID", "URI", "NLA_Party_Identifier", "ResearcherID", "openID", "Personal_URI", "Orcid_ID"]
         for field in idFields:
             if data.containsKey(field):
                 value = data.get(field)
