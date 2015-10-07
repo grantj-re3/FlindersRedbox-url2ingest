@@ -1,3 +1,55 @@
+##
+## Include all the given names and initials for a person as a string in a
+## single name part, leaving spaces between each name and initial. See
+## sample record at https://wiki.nla.gov.au/display/peau/EAC
+## ie. Given names = Given name [+ Other names]
+##
+#macro(showForename)
+  #set ($givenName = $util.get($item, 'data', 'Given_Name'))	## Mandatory field
+  #set ($givenNames = $givenName)
+
+  #set ($value = $util.get($item, "data", "Other_Names"))	## Optional field
+  #if ("$!value" != "")
+    #set ($givenNames = "$givenNames $value")
+  #end
+
+  ## #set ($value = $util.get($item, "data", "Pref_Name"))		## Optional field
+  ## #if ("$!value" != "" && "$givenName" != "$value")
+  ##   #set ($givenNames = "$givenNames ($value)")
+  ## #end
+  <part localType="forename">$util.encodeXml($givenNames)</part>
+#end
+
+##
+## Build a Description/Biography field to fallback to if existing one is empty.
+## Description = [Honorific +] Given name [+ (Prefered names)] [+ Family name]
+##
+#macro(showFallbackBio)
+  #set ($givenName = $util.get($item, 'data', 'Given_Name'))	## Mandatory field
+  #set ($desc = $givenName)
+
+  #set ($value = $util.get($item, "data", "Honorific"))		## Optional field
+  #if ("$!value" != "")
+    #set ($desc = "$value $desc")
+  #end
+
+  #set ($value = $util.get($item, "data", "Other_Names"))	## Optional field
+  #if ("$!value" != "")
+    #set ($desc = "$desc $value")
+  #end
+
+  ## #set ($value = $util.get($item, "data", "Pref_Name"))		## Optional field
+  ## #if ("$!value" != "" && "$givenName" != "$value")
+  ##   #set ($desc = "$desc ($value)")
+  ## #end
+
+  #set ($value = $util.get($item, "data", "Family_Name"))	## Optional field
+  #if ("$!value" != "")
+    #set ($desc = "$desc $value")
+  #end
+  <abstract>$util.encodeXml($desc)</abstract>
+#end
+
 #set($defaultOnError = "&Invalid XML placeholder... prevents Harvesting records in error&")
 #set($group = $systemConfig.getString($defaultOnError, "redbox.identity", "RIF-CS Group"))
 
@@ -50,7 +102,7 @@
                 #set ($value = $util.get($item, "data", "Family_Name"))
                 #if ("$!value" != "")
                 <part localType="surname">$util.encodeXml($value)</part>
-                <part localType="forename">$util.encodeXml($util.get($item, 'data', 'Given_Name'))</part>
+                #showForename ()
                 #end
             </nameEntry>
         </identity>
@@ -60,8 +112,7 @@
                 #if ("$!value" != "")
                     <abstract>$util.encodeXml($value)</abstract>
                 #else
-                    #set ($pretend = "$util.encodeXml($util.get($item, 'data', 'Honorific')) $util.encodeXml($util.get($item, 'data', 'Given_Name')) $util.encodeXml($util.get($item, 'data', 'Family_Name')), $util.encodeXml($util.get($item, 'data', 'Division')), $util.encodeXml($util.get($item, 'data', 'School'))")
-                    <abstract>$pretend</abstract>
+                    #showFallbackBio ()
                 #end
             </biogHist>
         </description>

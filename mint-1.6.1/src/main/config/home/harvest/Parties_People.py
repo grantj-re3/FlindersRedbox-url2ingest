@@ -89,7 +89,18 @@ class IndexData:
         self.utils.add(self.index, "dc_identifier", metadata.get("dc.identifier"))
         
         data = json.getObject("data")
-        self.utils.add(self.index, "dc_title", "%s, %s" % (data.get("Family_Name"), data.get("Given_Name")))
+        familyName = data.get("Family_Name")
+        givenName = data.get("Given_Name")
+        otherNames = data.get("Other_Names")
+        if otherNames == "":
+            givenNames = givenName
+        else:
+            givenNames = "%s %s" % (givenName, otherNames)
+        prefName = data.get("Pref_Name")
+        if prefName == "" or prefName == givenName:
+            self.utils.add(self.index, "dc_title", "%s, %s" % (familyName, givenNames))
+        else:
+            self.utils.add(self.index, "dc_title", "%s, %s (%s)" % (familyName, givenNames, prefName))
 
         self.utils.add(self.index, "dc_description", data.get("Description"))
         self.utils.add(self.index, "dc_format", "application/x-mint-party-people")

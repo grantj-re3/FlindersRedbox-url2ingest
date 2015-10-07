@@ -2,9 +2,9 @@
     "harvester": {
         "type": "csv",
         "csv": {
-            "fileLocation": "${fascinator.home}/data/People_Sample.csv",
+            "fileLocation": "${fascinator.home}/data/Parties_People.csv",
             "idColumn": "ID",
-            "recordIDPrefix": "redbox-mint.googlecode.com/parties/people/",
+            "recordIDPrefix": "redboxmint_flinders_edu_au/parties/people/",
             "headerRow": true,
             "delimiter": ",",
             "ignoredFields": [],
@@ -27,17 +27,17 @@
             "sourcePath": ["data"],
             "relations": {
                 "GroupID_1": {
-                    "prefix": "redbox-mint.googlecode.com/parties/group/",
+                    "prefix": "redboxmint_flinders_edu_au/parties/group/",
                     "relation": "isMemberOf",
                     "reverseRelation": "hasMember"
                 },
                 "GroupID_2": {
-                    "prefix": "redbox-mint.googlecode.com/parties/group/",
+                    "prefix": "redboxmint_flinders_edu_au/parties/group/",
                     "relation": "isMemberOf",
                     "reverseRelation": "hasMember"
                 },
                 "GroupID_3": {
-                    "prefix": "redbox-mint.googlecode.com/parties/group/",
+                    "prefix": "redboxmint_flinders_edu_au/parties/group/",
                     "relation": "isMemberOf",
                     "reverseRelation": "hasMember"
                 }
@@ -57,8 +57,9 @@
                 "path": ["metadata"],
                 "field": "rdf:resource"
             },
-            "template": "[[INC]]",
-            "urlTemplate": "${server.url.base}published/detail/[[OID]]"
+            "template": "test-ac-[[INC]]",
+            "urlTemplate": "http://andsdevpub.flinders.edu.au/md/m/[[OID]].html",
+            "updateUrl": true
         },
         "jsonVelocity": {
             "templatesPath" : "${fascinator.home}/templates/people",
