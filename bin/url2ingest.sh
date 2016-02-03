@@ -78,6 +78,10 @@ TF_HARVEST_LOG=$MINT_BASE/home/logs/harvest.out
 TF_HARVEST_LOG_EXCLUDE_REGEX="DEBUG *CSVHarvester *{\"ID\":.*}\$"	# Exclude CSV lines from $TF_HARVEST_LOG
 TF_HARVEST_LOG_ERROR_REGEX="error|fail|exception"	# Regex to detect errors in $TF_HARVEST_LOG
 
+# Regex matching lines to exclude when copying $TF_HARVEST_LOG to
+# $HARVEST_LOG_ACCUM. Required in Mint 1.8.
+COPY_TF_HARVEST_LOG_EXCLUDE_REGEX="(INFO|DEBUG) *GenericDigitalObject Closed .*metadata input *Stream"
+
 TF_SERVER_DIR=$MINT_BASE/server
 TF_HARVEST_BIN=tf_harvest.sh
 MINT_PID_FPATH=$TF_SERVER_DIR/tf.pid
@@ -487,7 +491,7 @@ fi
 # The Mint rewrites $TF_HARVEST_LOG (ie. does not append) for each run.
 # Hence we will append a copy here.
 if [ "$is_load_csv_done" = 1 ]; then
-  cmd="(echo; echo_timestamp \"[$APP $copt_data_source $copt_full_incr] Appending Mint harvest log...\"; cat $TF_HARVEST_LOG) >> $HARVEST_LOG_ACCUM"
+  cmd="(echo; echo_timestamp \"[$APP $copt_data_source $copt_full_incr] Appending Mint harvest log...\"; egrep -vi \"$COPY_TF_HARVEST_LOG_EXCLUDE_REGEX\" $TF_HARVEST_LOG) >> $HARVEST_LOG_ACCUM"
   do_command "$cmd" $VERBOSE "Append Mint harvest log to $HARVEST_LOG_ACCUM"
 else
   echo_timestamp "No backup of the Mint harvest log will be performed."
