@@ -311,7 +311,7 @@ verify_mint_is_running() {
   fi
 
   pid=`cat "$MINT_PID_FPATH"`
-  if ! ps $PS_OPTS |egrep "^[^ ]{1,}[ ]{1,}$pid .* java .*\-Dfascinator\.home=" >/dev/null; then
+  if ! ps $PS_OPTS |egrep "^[^ ]{1,}[ ]{1,}$pid .* (.*/){0,1}java .*\-Dfascinator\.home=" >/dev/null; then
     echo_timestamp "Mint does not appear to be running: PID '$pid' (from '$MINT_PID_FPATH') does not appear to be a java/fascinator process"
     exit 4
   fi
