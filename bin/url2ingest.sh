@@ -62,9 +62,13 @@ APP=`basename $0`
 WGET_OPTS="--no-verbose"	# wget args
 LN_OPTS="-sf"			# ln args: Force the update of a symlink
 PS_OPTS="-afe"			# ps args: PID in 2nd field & full command (including args)
+OTHER_OK_RETVAL_GREP=1		# When grep/egrep returns 1 it is not an error
 
 MINT_BASE=/opt/ands/mint-builds/current		## CUSTOMISE: Set to Mint base dir
 TF_HARVEST_LOG=$MINT_BASE/home/logs/harvest.out
+
+# Matches the CSV header for both people & projects
+CSV_HDR_REGEX='^\"ID\",'
 
 # Before attempting to detect errors in $TF_HARVEST_LOG, we might wish to
 # exclude certain records first with "egrep -v" (eg. for DEBUG logging,
@@ -112,7 +116,9 @@ PERSON_IN_URL_CSV=http://my_host.my_uni.edu.au/path/to/my_people.csv
 PERSON_MINT_DATA_SOURCE=Parties_People
 # The filename of the CSV file *after* being downloaded from the URL
 PERSON_DOWNLOADED_FNAME=people.csv
-PERSON_FILTER_CONFIG_FPATH=$PARENT_DIR/etc/include_filter_people.conf
+PERSON_INCL_FILTER_CONFIG_FPATH=$PARENT_DIR/etc/include_filter_people.conf
+PERSON_EXCL_FILTER_CONFIG_FPATH=$PARENT_DIR/etc/exclude_filter_people.conf
+PERSON_ADD_CSV_FPATH=$PARENT_DIR/etc/add_people.csv
 
 ##############################################################################
 # Project vars
@@ -123,7 +129,9 @@ PROJECT_IN_URL_CSV=http://my_host.my_uni.edu.au/path/to/my_projects.csv
 PROJECT_MINT_DATA_SOURCE=Activities_Mis_Projects
 # The filename of the CSV file *after* being downloaded from the URL
 PROJECT_DOWNLOADED_FNAME=projects.csv
-PROJECT_FILTER_CONFIG_FPATH=$PARENT_DIR/etc/include_filter_project.conf
+PROJECT_INCL_FILTER_CONFIG_FPATH=$PARENT_DIR/etc/include_filter_project.conf
+PROJECT_EXCL_FILTER_CONFIG_FPATH=$PARENT_DIR/etc/exclude_filter_project.conf
+PROJECT_ADD_CSV_FPATH=$PARENT_DIR/etc/add_projects.csv
 
 ##############################################################################
 # echo_timestamp(msg) -- Echo with timestamp
@@ -151,7 +159,9 @@ dump_exit() {
     IN_URL_CSV		Source URL from which to download the CSV file.
     DOWNLOADED_FPATH	Temporary file location where downloaded file will be placed for processing.
     MINT_DATA_SOURCE	Mint Data-Source name. This is the argument when running ./tf_harvest.sh.
-    FILTER_CONFIG_FPATH	Path to the 'inclusive-filter' configuration file which allows you to write\\\\n  regular expressions (one per line) defining records to include in the CSV file\\\\n  to be ingested into Mint. Records which do not match will not be included.\\\\n  You must ensure that the header line of the CSV file is also matched.
+    INCL_FILTER_CONFIG_FPATH	Path to the 'inclusion-filter' configuration file which allows you to write\\\\n  regular expressions (one per line) defining records to include in the CSV file\\\\n  to be ingested into Mint. Records which do not match will not be included.\\\\n  You must ensure that the header line of the CSV file is also matched.
+    EXCL_FILTER_CONFIG_FPATH	Path to the 'exclusion-filter' configuration file which allows you to write\\\\n  regular expressions (one per line) defining records to exclude from the CSV file\\\\n  to be ingested into Mint. Records which match will be excluded. If you do not\\\\n  wish to exclude any records you must ensure your regular expression cannot\\\\n  match any record. Eg. \"a^\".  You must also take care not to exclude the CSV\\\\n  header line.
+    ADD_CSV_FPATH	Records to add to the CSV file *after* applying the inclusion-filter\\\\n  followed by the exclusion-filter. The records must have exactly the\\\\n  same fields in exactly the same order as the downloaded CSV file.\\\\n  This file may optionally have a CSV header line (but it will be\\\\n  ignored by this program).
     FINAL_FPATH		Temporary file location where the final CSV file will be placed while Mint\\\\n  ingests records from the above data souce. A symlink from the Data-Source's \\\\n  'fileLocation' MUST point here. This file will only exist during run-time.
   "
 
@@ -170,8 +180,8 @@ dump_exit() {
           cmd="echo \"\$$var\""		# Command to show the shell var's value
           val=`eval $cmd`		# The value
           echo
-          echo -e "* $descr"
-          echo "  * $var=\"$val\""
+          echo -e "  $descr"
+          echo    "  * $var=\"$val\""
         fi
       done
 
@@ -247,12 +257,18 @@ get_data_source_vars() {
     IN_URL_CSV=$PERSON_IN_URL_CSV
     MINT_DATA_SOURCE=$PERSON_MINT_DATA_SOURCE
     DOWNLOADED_FNAME=$PERSON_DOWNLOADED_FNAME
-    FILTER_CONFIG_FPATH=$PERSON_FILTER_CONFIG_FPATH
+    INCL_FILTER_CONFIG_FPATH=$PERSON_INCL_FILTER_CONFIG_FPATH
+    EXCL_FILTER_CONFIG_FPATH=$PERSON_EXCL_FILTER_CONFIG_FPATH
+    ADD_CSV_FPATH=$PERSON_ADD_CSV_FPATH
+
   elif [ "$opt" = --projects ]; then
     IN_URL_CSV=$PROJECT_IN_URL_CSV
     MINT_DATA_SOURCE=$PROJECT_MINT_DATA_SOURCE
     DOWNLOADED_FNAME=$PROJECT_DOWNLOADED_FNAME
-    FILTER_CONFIG_FPATH=$PROJECT_FILTER_CONFIG_FPATH
+    INCL_FILTER_CONFIG_FPATH=$PROJECT_INCL_FILTER_CONFIG_FPATH
+    EXCL_FILTER_CONFIG_FPATH=$PROJECT_EXCL_FILTER_CONFIG_FPATH
+    ADD_CSV_FPATH=$PROJECT_ADD_CSV_FPATH
+
   else
     usage_exit "Unexpected option '$opt'"
   fi
@@ -288,8 +304,13 @@ setup() {
 # verify_filter_config() -- Refuse to use a poor filter config file
 ##############################################################################
 verify_filter_config() {
-  if egrep -q "^[	 ]*$" $FILTER_CONFIG_FPATH; then
-    echo_timestamp "QUITTING: The config file '$FILTER_CONFIG_FPATH' contains one or more blank lines (which match everything)!"
+  if egrep -q "^[	 ]*$" $INCL_FILTER_CONFIG_FPATH; then
+    echo_timestamp "QUITTING: The config file '$INCL_FILTER_CONFIG_FPATH' contains one or more blank lines (which match everything)!"
+    exit 5
+  fi
+
+  if egrep -q "^[	 ]*$" $EXCL_FILTER_CONFIG_FPATH; then
+    echo_timestamp "QUITTING: The config file '$EXCL_FILTER_CONFIG_FPATH' contains one or more blank lines (which match everything)!"
     exit 5
   fi
 }
@@ -318,26 +339,35 @@ verify_mint_is_running() {
 }
 
 ##############################################################################
-# do_command(cmd, is_show_cmd, msg) -- Execute a shell command
+# do_command(cmd, is_show_cmd, msg, other_ok_retval) -- Execute a shell command
 ##############################################################################
 # - If msg is not empty, write it to stdout else do not.
 # - If is_show_cmd==1, write command 'cmd' to stdout else do not.
 # - Execute command 'cmd'
+# - other_ok_retval is for commands such as grep where there is a second
+#   retval eg. 1 (in addition to 0) which is a non-error condition.
+#   This is an optional parameter.
 do_command() {
   cmd="$1"
   is_show_cmd=$2
   msg="$3"
+  other_ok_retval="$4"
 
   [ "$msg" != "" ] && echo_timestamp "$msg"
   [ $is_show_cmd = 1 ] && echo_timestamp "Command: $cmd"
   if [ $DRY_RUN = 1 ]; then
     echo_timestamp "DRY RUN: Not executing the above command."
+
   else
     eval $cmd
     retval=$?
     if [ $retval -ne 0 ]; then
-      echo_timestamp "Error returned by command (ErrNo: $retval)" >&2
-      exit $retval
+
+      if [ "$other_ok_retval" = "" -o $retval != "$other_ok_retval" ]; then
+        echo_timestamp "Error returned by command (ErrNo: $retval)" >&2
+        exit $retval
+      fi
+
     fi
   fi
 }
@@ -441,11 +471,17 @@ is_load_csv_done=0
 is_load_csv_successful=0
 timestamp=`date +%y%m%d-%H%M%S`
 
+# Sequence: Download > Incl-filter > Excl-filter > Add-CSV-records
 cmd="wget -O $DOWNLOADED_FPATH $WGET_OPTS $IN_URL_CSV"
 do_command "$cmd" $VERBOSE "Download metadata file from $IN_URL_CSV"
-cmd="egrep -f \"$FILTER_CONFIG_FPATH\" \"$DOWNLOADED_FPATH\" > \"$FILTERED_FPATH\""
-do_command "$cmd" $VERBOSE "Apply inclusive filter to the downloaded records"
-echo_timestamp "Number of filtered lines (including header) is `wc -l < \"$FILTERED_FPATH\"`"
+cmd="egrep -f \"$INCL_FILTER_CONFIG_FPATH\" \"$DOWNLOADED_FPATH\" |
+  egrep -vf \"$EXCL_FILTER_CONFIG_FPATH\" > \"$FILTERED_FPATH\""
+do_command "$cmd" $VERBOSE "Apply inclusive/exclusive filters to the downloaded records"
+echo_timestamp "Number of filtered lines step 1 (including header) is `wc -l < \"$FILTERED_FPATH\"`"
+
+cmd="egrep -v "$CSV_HDR_REGEX" \"$ADD_CSV_FPATH\" >> \"$FILTERED_FPATH\""
+do_command "$cmd" $VERBOSE "Append more CSV records from $ADD_CSV_FPATH" "$OTHER_OK_RETVAL_GREP"
+echo_timestamp "Number of filtered lines step 2 (including header) is `wc -l < \"$FILTERED_FPATH\"`"
 
 cmd="cd $TEMP_DIR && rm -f $FINAL_FPATH"
 do_command "$cmd" $VERBOSE "If it exists, remove symlink $FINAL_FPATH"

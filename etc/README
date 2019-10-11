@@ -1,0 +1,28 @@
+
+SEQUENCE OF EVENTS FOR PEOPLE METADATA:
+
+- Download CSV
+- Include only records which match regexs given in include_filter_people.conf
+- Exclude only records which match regexs given in exclude_filter_people.conf
+- Add CSV records listed in add_people.csv
+
+
+NOTES:
+- include_filter_people.conf requires a regex to include the header line and
+  another (or the same) regex to include metadata lines
+- if you do not wish exclude_filter_people.conf to exclude any lines then
+  you will need to add a regex which cannot match any line eg. "a^"
+- add_people.csv must have exactly the same fields in exactly the same
+  order as the downloaded CSV file
+- add_people.csv can include a header line but it is optional and is
+  not used (since the metadata CSV lines are simply appended to the
+  filtered CSV file - which does have a header line)
+
+
+SEQUENCE OF EVENTS FOR PROJECTS METADATA:
+
+Identical to sequence for people metadata but with files:
+- include_filter_project.conf instead of include_filter_people.conf
+- exclude_filter_project.conf instead of exclude_filter_people.conf
+- add_projects.csv instead of add_people.csv
+
