@@ -15,7 +15,9 @@ host=`hostname |sed 's/\..*$//'`
 
 # This wrapper-app & wrapped-app live in the same dir.
 filename_wrapper_app=`basename "$0"`
-path_wrapped_app=`echo "$0" |sed 's/_wrap.sh$/.sh/'`
+# Attempt to ensure that wrapper-app & wrapped-app cannot be the same -
+# which would result in unterminated recursion below!
+path_wrapped_app=`echo "$0" |sed 's/_wrap.sh.*$//; s/$/.sh/'`
 
 app_dir=`dirname "$0"`
 log_file=`cd "$app_dir"/../log && pwd`/url2ingest.log
